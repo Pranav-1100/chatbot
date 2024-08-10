@@ -1,5 +1,5 @@
 const express = require('express');
-const { initDatabase } = require('./config/database');
+const { initDatabase } = require('./config/db');
 const authRoutes = require('./routes/auth');
 
 const app = express();

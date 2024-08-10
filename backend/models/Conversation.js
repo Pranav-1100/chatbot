@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('./../config/db');
 
-const Conversation = sequelize.define('Conversation', {
+module.exports = (sequelize) => {
+  const Conversation = sequelize.define('Conversation', {
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
@@ -35,10 +35,6 @@ const Conversation = sequelize.define('Conversation', {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    subject: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
     lastMsgAt: {
       type: DataTypes.DATE,
       allowNull: true
@@ -69,7 +65,5 @@ const Conversation = sequelize.define('Conversation', {
     timestamps: true
   });
 
-
-  module.exports = {
-    Conversation
-  };
+  return Conversation;
+};

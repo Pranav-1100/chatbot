@@ -1,3 +1,7 @@
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('./../config/db');
+
+module.exports = (sequelize) => {
 const Note = sequelize.define('Note', {
     id: {
       type: DataTypes.UUID,
@@ -24,3 +28,5 @@ const Note = sequelize.define('Note', {
     tableName: 'notes',
     timestamps: true
   });
+  return Note
+};

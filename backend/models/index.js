@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/index');
+const { sequelize } = require('../config/db');
 
 const Conversation = require('./Conversation')(sequelize);
 const EndUser = require('./EndUser')(sequelize);

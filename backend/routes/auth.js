@@ -1,47 +1,49 @@
+// routes/auth.js
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt'); // Make sure this line is here
 const { User } = require('../models');
-const auth = require('../middleware/auth');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to generate JWT token
+const generateToken = (user) => {
+    const payload = {
+        userId: user.id,
+        email: user.email,
+        // Add any other necessary user info here
+    };
+    return jwt.sign(payload, process.env.JWT_SECRET || "your_default_secret_key", { expiresIn: '24h' });
+};
+
 router.post('/register', async (req, res) => {
-  try {
-    const user = await User.create(req.body);
-    const token = user.generateAuthToken();
-    res.status(201).send({ user, token });
-  } catch (error) {
-    res.status(400).send(error);
-  }
-});
-
-router.post('/login', async (req, res) => {
-  try {
-    const user = await User.findOne({ where: { email: req.body.email } });
-    if (!user) {
-      return res.status(401).send({ error: 'Login failed! Check authentication credentials' });
+    try {
+      const { username, email, password } = req.body;
+      const user = await User.create({ username, email, password });
+      const token = user.generateAuthToken();
+      res.status(201).json({ user: { id: user.id, username: user.username, email: user.email }, token });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
     }
-    const isPasswordMatch = await user.comparePassword(req.body.password);
-    if (!isPasswordMatch) {
-      return res.status(401).send({ error: 'Login failed! Check authentication credentials' });
+  });
+  
+  router.post('/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ where: { email } });
+      if (!user || !(await user.comparePassword(password))) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      const token = user.generateAuthToken();
+      res.json({ user: { id: user.id, username: user.username, email: user.email }, token });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
     }
-    const token = user.generateAuthToken();
-    res.send({ user, token });
-  } catch (error) {
-    res.status(400).send(error);
-  }
-});
-
-router.post('/logout', auth, async (req, res) => {
-  try {
-    // In a more complex system, you might want to invalidate the token here
-    res.send({ message: 'Logged out successfully' });
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
-
-router.get('/me', auth, async (req, res) => {
-  res.send(req.user);
-});
+  });
+  
+  router.get('/me', authMiddleware, (req, res) => {
+    res.json({ user: req.user });
+  });
 
 module.exports = router;

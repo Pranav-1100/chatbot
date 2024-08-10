@@ -1,4 +1,6 @@
 const { DataTypes } = require('sequelize');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 module.exports = (sequelize) => {
   const User = sequelize.define('User', {
@@ -47,21 +49,28 @@ module.exports = (sequelize) => {
     hooks: {
       beforeCreate: async (user) => {
         if (user.password) {
-          user.password = await bcrypt.hash(user.password, 8);
+          user.password = await bcrypt.hash(user.password, 10);
         }
       },
       beforeUpdate: async (user) => {
         if (user.changed('password')) {
-          user.password = await bcrypt.hash(user.password, 8);
+          user.password = await bcrypt.hash(user.password, 10);
         }
       }
     }
   });
 
   User.prototype.generateAuthToken = function() {
-    const token = jwt.sign({ id: this.id }, process.env.JWT_SECRET, {
-      expiresIn: '24h'
-    });
+    const token = jwt.sign(
+      { 
+        userId: this.id,
+        email: this.email,
+        role: this.role,
+        teams: [] // You can populate this with actual team data if needed
+      }, 
+      process.env.JWT_SECRET || 'your_default_secret_key', 
+      { expiresIn: '24h' }
+    );
     return token;
   };
 

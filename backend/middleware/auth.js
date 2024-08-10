@@ -1,22 +1,27 @@
+// middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-const auth = async (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.header('Authorization').replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findOne({ where: { id: decoded.id } });
-
-    if (!user) {
-      throw new Error();
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    req.token = token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_default_secret_key');
+    const user = await User.findByPk(decoded.userId);
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
     req.user = user;
+    req.token = token;
     next();
   } catch (error) {
-    res.status(401).send({ error: 'Please authenticate.' });
+    res.status(401).json({ error: 'Please authenticate' });
   }
 };
 
-module.exports = auth;
+module.exports = authMiddleware;

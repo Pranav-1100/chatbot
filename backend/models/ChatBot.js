@@ -12,6 +12,10 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
             allowNull: false
         },
+        config: {
+            type: DataTypes.TEXT,
+            allowNull: true
+          },
         slug: DataTypes.STRING,
         url: DataTypes.STRING,
         config: DataTypes.JSON,

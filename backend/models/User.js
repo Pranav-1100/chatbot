@@ -43,8 +43,31 @@ module.exports = (sequelize) => {
   }, {
     tableName: 'users',
     timestamps: true,
-    paranoid: true
+    paranoid: true,
+    hooks: {
+      beforeCreate: async (user) => {
+        if (user.password) {
+          user.password = await bcrypt.hash(user.password, 8);
+        }
+      },
+      beforeUpdate: async (user) => {
+        if (user.changed('password')) {
+          user.password = await bcrypt.hash(user.password, 8);
+        }
+      }
+    }
   });
+
+  User.prototype.generateAuthToken = function() {
+    const token = jwt.sign({ id: this.id }, process.env.JWT_SECRET, {
+      expiresIn: '24h'
+    });
+    return token;
+  };
+
+  User.prototype.comparePassword = async function(candidatePassword) {
+    return bcrypt.compare(candidatePassword, this.password);
+  };
 
   return User;
 };

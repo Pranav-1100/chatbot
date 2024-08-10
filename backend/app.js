@@ -1,9 +1,9 @@
-// app.js
 const express = require('express');
-const { initDatabase } = require('./config/db');
+const { initDatabase } = require('./config/database');
+const authRoutes = require('./routes/auth');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Initialize database
 initDatabase()
@@ -15,11 +15,16 @@ initDatabase()
     process.exit(1);
   });
 
-// Middleware to parse JSON bodies
+// Middleware
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Server is running');
+// Routes
+app.use('/api/auth', authRoutes);
+
+// Protected route example
+const auth = require('./middleware/auth');
+app.get('/api/protected', auth, (req, res) => {
+  res.send('This is a protected route');
 });
 
 app.listen(port, () => {

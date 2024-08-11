@@ -2,19 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Plus, Filter, User, LogOut, Settings } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Plus, User, LogOut, Settings } from 'lucide-react';
 import { getChatbots, createChatbot } from '../../services/chatbotService';
 import NewChatbotModal from '../../components/NewChatbotModal';
 import ChatbotCard from '../../components/ChatbotCard';
 import ChatbotAnalytics from '../../components/ChatbotAnalytics';
 
-
 export default function ChatbotDashboard() {
   const [chatbots, setChatbots] = useState([]);
   const [showNewChatbotModal, setShowNewChatbotModal] = useState(false);
-  const [filter, setFilter] = useState('all');
-  const [tagFilter, setTagFilter] = useState('all');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const router = useRouter();
 
@@ -33,7 +29,6 @@ export default function ChatbotDashboard() {
       setChatbots(fetchedChatbots);
     } catch (error) {
       console.error('Failed to fetch chatbots:', error);
-      // Handle error (e.g., show error message to user)
     }
   };
 
@@ -44,7 +39,6 @@ export default function ChatbotDashboard() {
       fetchChatbots();
     } catch (error) {
       console.error('Failed to create chatbot:', error);
-      // Handle error (e.g., show error message to user)
     }
   };
 
@@ -52,14 +46,6 @@ export default function ChatbotDashboard() {
     localStorage.removeItem('token');
     router.push('/login');
   };
-
-  const allTags = [...new Set(chatbots.flatMap(chatbot => chatbot.conversationTags || []))];
-
-  const filteredChatbots = chatbots.filter(chatbot => {
-    const priorityMatch = filter === 'all' || chatbot.priority === filter;
-    const tagMatch = tagFilter === 'all' || chatbot.conversationTags?.includes(tagFilter);
-    return priorityMatch && tagMatch;
-  });
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -99,42 +85,14 @@ export default function ChatbotDashboard() {
           >
             <Plus className="mr-2" /> New Chatbot
           </button>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <Filter className="mr-2" />
-              <select
-                className="bg-gray-800 text-white rounded p-2"
-                onChange={(e) => setFilter(e.target.value)}
-                value={filter}
-              >
-                <option value="all">All Priorities</option>
-                <option value="Urgent">Urgent</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-            <div className="flex items-center">
-              <Filter className="mr-2" />
-              <select
-                className="bg-gray-800 text-white rounded p-2"
-                onChange={(e) => setTagFilter(e.target.value)}
-                value={tagFilter}
-              >
-                <option value="all">All Tags</option>
-                {allTags.map((tag) => (
-                  <option key={tag} value={tag}>{tag}</option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredChatbots.map((chatbot) => (
+          {chatbots.map((chatbot) => (
             <ChatbotCard 
               key={chatbot.id} 
               chatbot={chatbot} 
-              onViewConversations={() => router.push(`/chatbot/${chatbot.id}`)}
+              onViewConversations={() => router.push(`/conversations/${chatbot.id}`)}
             />
           ))}
         </div>

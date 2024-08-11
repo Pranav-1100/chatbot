@@ -14,7 +14,7 @@ export default function NewChatbotModal({ onClose, onCreateChatbot }) {
       description,
       url,
       LLMModel: llmModel,
-      LLMPrompts: llmPrompts ? JSON.parse(llmPrompts) : undefined,
+      LLMPrompts: llmPrompts,
     };
     onCreateChatbot({ name, config, activePlan });
   };
@@ -66,7 +66,7 @@ export default function NewChatbotModal({ onClose, onCreateChatbot }) {
             />
           </div>
           <div className="mb-4">
-            <label htmlFor="llmPrompts" className="block text-sm font-medium text-gray-300">LLM Prompts (JSON)</label>
+            <label htmlFor="llmPrompts" className="block text-sm font-medium text-gray-300">LLM Prompts</label>
             <textarea
               id="llmPrompts"
               value={llmPrompts}

@@ -1,0 +1,24 @@
+{
+    "conversation": {
+        "id": "6cae3034-547a-4a8a-b998-dde11fecd18d",
+        "seen": false,
+        "conversationTags": [],
+        "notes": [],
+        "chatbotId": "f3414d89-9495-46bd-947a-6c45e705bd00",
+        "endUserId": "bf478703-af70-41d7-858e-cd630270dcd6",
+        "assignedTo": "bot",
+        "source": "tele",
+        "updatedAt": "2024-08-11T07:24:04.724Z",
+        "createdAt": "2024-08-11T07:24:04.724Z"
+    },
+    "endUser": {
+        "id": "bf478703-af70-41d7-858e-cd630270dcd6",
+        "name": "was",
+        "emailId": "was@gmail.com",
+        "source": "tele",
+        "externalId": "hi",
+        "chatbotId": "f3414d89-9495-46bd-947a-6c45e705bd00",
+        "updatedAt": "2024-08-11T07:24:04.719Z",
+        "createdAt": "2024-08-11T07:24:04.719Z"
+    }
+}

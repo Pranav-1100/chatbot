@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { getChatbots, createChatbot } from '../../services/chatbotService';
 import NewChatbotModal from '../../components/NewChatbotModal';
 import ChatbotCard from '../../components/ChatbotCard';
+import ChatbotAnalytics from '../../components/ChatbotAnalytics';
+
 
 export default function ChatbotDashboard() {
   const [chatbots, setChatbots] = useState([]);
@@ -138,6 +140,9 @@ export default function ChatbotDashboard() {
         </div>
       </main>
 
+      <div className="p-8">
+        <ChatbotAnalytics chatbots={chatbots} />
+      </div>
       {showNewChatbotModal && (
         <NewChatbotModal
           onClose={() => setShowNewChatbotModal(false)}

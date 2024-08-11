@@ -7,16 +7,73 @@ const router = express.Router();
 
 // Start a new conversation
 router.post('/conversations', auth, async (req, res) => {
-  try {
-    const conversation = await Conversation.create({
-      ...req.body,
-      endUserId: req.user.id
-    });
-    res.status(201).send(conversation);
-  } catch (error) {
-    res.status(400).send(error);
-  }
-});
+    const transaction = await sequelize.transaction();
+  
+    try {
+      const { chatbotId, endUserName, endUserEmail, source, externalId, message } = req.body;
+  
+      // Check if the chatbot exists and belongs to the user
+      const chatbot = await Chatbot.findOne({ 
+        where: { id: chatbotId, userId: req.user.id },
+        transaction
+      });
+  
+      if (!chatbot) {
+        await transaction.rollback();
+        return res.status(404).send({ error: 'Chatbot not found' });
+      }
+  
+      // Find or create the EndUser
+      let endUser = await EndUser.findOne({ 
+        where: { 
+          [Op.or]: [
+            { emailId: endUserEmail },
+            { externalId: externalId }
+          ],
+          chatbotId: chatbotId
+        },
+        transaction
+      });
+  
+      if (!endUser) {
+        endUser = await EndUser.create({
+          name: endUserName,
+          emailId: endUserEmail,
+          source: source,
+          externalId: externalId,
+          chatbotId: chatbotId
+        }, { transaction });
+      }
+  
+      // Create the conversation
+      const conversation = await Conversation.create({
+        chatbotId: chatbotId,
+        endUserId: endUser.id,
+        assignedTo: 'bot',
+        source: source
+      }, { transaction });
+  
+      // Create the first message
+      if (message) {
+        await Message.create({
+          chatText: message,
+          conversationId: conversation.id,
+          chatUser: 'agent'
+        }, { transaction });
+      }
+  
+      await transaction.commit();
+  
+      res.status(201).send({
+        conversation: conversation,
+        endUser: endUser
+      });
+    } catch (error) {
+      await transaction.rollback();
+      console.error('Error in create conversation route:', error);
+      res.status(400).send(error);
+    }
+  });
 
 // Get all conversations for the user
 router.get('/conversations', auth, async (req, res) => {
@@ -153,6 +210,25 @@ router.post('/conversations/:id/messages', auth, async (req, res) => {
     } catch (error) {
       console.error(error);
       res.status(500).send('An error occurred');
+    }
+  });
+  // Assign conversation to an agent
+router.post('/:id/assign', auth, async (req, res) => {
+    try {
+      const { agentId } = req.body;
+      const conversation = await Conversation.findOne({
+        where: { id: req.params.id },
+        include: [{ model: Chatbot, where: { userId: req.user.id } }]
+      });
+      if (!conversation) {
+        return res.status(404).send({ error: 'Conversation not found' });
+      }
+      conversation.agentId = agentId;
+      conversation.assignedTo = 'agent';
+      await conversation.save();
+      res.send(conversation);
+    } catch (error) {
+      res.status(400).send(error);
     }
   });
   

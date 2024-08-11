@@ -33,7 +33,11 @@ module.exports = (sequelize) => {
         conversationTags: {
             type: DataTypes.JSON,
             defaultValue: []
-        }
+        },
+        userId: {
+            type: DataTypes.UUID,
+            allowNull: false,
+          },
     }, {
         tableName: 'chatbots',
         timestamps: true

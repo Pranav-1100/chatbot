@@ -1,200 +1,64 @@
 const express = require('express');
-const { Conversation, Message } = require('../models');
-const auth = require('../middleware/auth');
-const { generateStreamingChatResponse } = require('../services/openaiService');
-
 const router = express.Router();
+const ChatService = require('../services/chatService');
+const auth = require('../middleware/auth');
 
 // Start a new conversation
 router.post('/conversations', auth, async (req, res) => {
-    const transaction = await sequelize.transaction();
-
     try {
         const { chatbotId, endUserName, endUserEmail, source, externalId, message } = req.body;
-
-        // Check if the chatbot exists and belongs to the user
-        const chatbot = await Chatbot.findOne({
-            where: { id: chatbotId, userId: req.user.id },
-            transaction
-        });
-
-        if (!chatbot) {
-            await transaction.rollback();
-            return res.status(404).send({ error: 'Chatbot not found' });
-        }
-
-        // Find or create the EndUser
-        let endUser = await EndUser.findOne({
-            where: {
-                [Op.or]: [
-                    { emailId: endUserEmail },
-                    { externalId: externalId }
-                ],
-                chatbotId: chatbotId
-            },
-            transaction
-        });
-
-        if (!endUser) {
-            endUser = await EndUser.create({
-                name: endUserName,
-                emailId: endUserEmail,
-                source: source,
-                externalId: externalId,
-                chatbotId: chatbotId
-            }, { transaction });
-        }
-
-        // Create the conversation
-        const conversation = await Conversation.create({
-            chatbotId: chatbotId,
-            endUserId: endUser.id,
-            assignedTo: 'bot',
-            source: source
-        }, { transaction });
-
-        // Create the first message
-        if (message) {
-            await Message.create({
-                chatText: message,
-                conversationId: conversation.id,
-                chatUser: 'agent'
-            }, { transaction });
-        }
-
-        await transaction.commit();
-
-        res.status(201).send({
-            conversation: conversation,
-            endUser: endUser
-        });
+        const result = await ChatService.startConversation(req.user.id, chatbotId, { endUserName, endUserEmail, source, externalId }, message);
+        res.status(201).send(result);
     } catch (error) {
-        await transaction.rollback();
         console.error('Error in create conversation route:', error);
-        res.status(400).send(error);
+        res.status(400).send({ error: error.message });
     }
 });
 
 // Get all conversations for the user
 router.get('/conversations', auth, async (req, res) => {
     try {
-        const conversations = await Conversation.findAll({
-            where: { endUserId: req.user.id }
-        });
+        const conversations = await ChatService.getConversations(req.user.id);
         res.send(conversations);
     } catch (error) {
-        res.status(500).send(error);
+        res.status(500).send({ error: error.message });
     }
 });
 
 // Get a specific conversation with messages
 router.get('/conversations/:id', auth, async (req, res) => {
     try {
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id, endUserId: req.user.id },
-            include: [Message]
-        });
+        const conversation = await ChatService.getConversation(req.params.id, req.user.id);
         if (!conversation) {
             return res.status(404).send({ error: 'Conversation not found' });
         }
         res.send(conversation);
     } catch (error) {
-        res.status(500).send(error);
+        res.status(500).send({ error: error.message });
     }
 });
 
-// Update the route for sending a message in a conversation
+// Send a message in a conversation
 router.post('/conversations/:id/messages', auth, async (req, res) => {
     try {
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id, endUserId: req.user.id },
-            include: [Chatbot]
-        });
-        if (!conversation) {
-            return res.status(404).send({ error: 'Conversation not found' });
-        }
-
-        // Save user message
-        const userMessage = await Message.create({
-            chatText: req.body.message,
-            conversationId: conversation.id,
-            chatUser: 'agent'
-        });
-
-        // Prepare conversation history
-        const messages = await Message.findAll({
-            where: { conversationId: conversation.id },
-            order: [['createdAt', 'ASC']]
-        });
-        const chatHistory = messages.map(msg => ({
-            role: msg.chatUser === 'agent' ? 'user' : 'assistant',
-            content: msg.chatText
-        }));
-
-        // Add chatbot configuration to the prompt
-        chatHistory.unshift({
-            role: 'system',
-            content: `You are a chatbot named ${conversation.Chatbot.name}. ${conversation.Chatbot.config}`
-        });
-
-        // Generate response from OpenAI
-        const aiResponse = await openaiService.generateChatResponse(chatHistory);
-
-        // Save AI response
-        const botMessage = await Message.create({
-            chatText: aiResponse,
-            conversationId: conversation.id,
-            chatUser: 'bot'
-        });
-
-        res.status(201).send({ userMessage, botMessage });
+        const result = await ChatService.sendMessage(req.params.id, req.user.id, req.body.message);
+        res.status(201).send(result);
     } catch (error) {
         console.error('Error in sending message:', error);
-        res.status(400).send(error);
+        res.status(400).send({ error: error.message });
     }
 });
 
-// Add a new route for streaming responses
+// Stream a message in a conversation
 router.post('/conversations/:id/messages/stream', auth, async (req, res) => {
     try {
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id, endUserId: req.user.id },
-            include: [Chatbot]
-        });
-        if (!conversation) {
-            return res.status(404).send({ error: 'Conversation not found' });
-        }
+        const stream = await ChatService.streamMessage(req.params.id, req.user.id, req.body.message);
 
-        // Save user message
-        await Message.create({
-            chatText: req.body.message,
-            conversationId: conversation.id,
-            chatUser: 'agent'
-        });
-
-        // Prepare conversation history
-        const messages = await Message.findAll({
-            where: { conversationId: conversation.id },
-            order: [['createdAt', 'ASC']]
-        });
-        const chatHistory = messages.map(msg => ({
-            role: msg.chatUser === 'agent' ? 'user' : 'assistant',
-            content: msg.chatText
-        }));
-
-        chatHistory.unshift({
-            role: 'system',
-            content: `You are a chatbot named ${conversation.Chatbot.name}. ${conversation.Chatbot.config}`
-        });
-
-        // Set up streaming response
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive'
         });
-
-        const stream = await openaiService.generateStreamingChatResponse(chatHistory);
 
         let fullResponse = '';
         stream.on('data', (chunk) => {
@@ -206,12 +70,7 @@ router.post('/conversations/:id/messages/stream', auth, async (req, res) => {
             res.write(`data: ${JSON.stringify({ type: 'end', content: 'Stream ended' })}\n\n`);
             res.end();
 
-            // Save the full response
-            await Message.create({
-                chatText: fullResponse,
-                conversationId: conversation.id,
-                chatUser: 'bot'
-            });
+            await ChatService.saveStreamResponse(req.params.id, fullResponse);
         });
 
         stream.on('error', (error) => {
@@ -219,31 +78,59 @@ router.post('/conversations/:id/messages/stream', auth, async (req, res) => {
             res.write(`data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`);
             res.end();
         });
-
     } catch (error) {
         console.error('Error in streaming message:', error);
         res.status(500).send({ error: 'An error occurred while streaming the response' });
     }
 });
+
 // Assign conversation to an agent
-router.post('/:id/assign', auth, async (req, res) => {
+router.post('/conversations/:id/assign', auth, async (req, res) => {
     try {
         const { agentId } = req.body;
-        const conversation = await Conversation.findOne({
-            where: { id: req.params.id },
-            include: [{ model: Chatbot, where: { userId: req.user.id } }]
-        });
-        if (!conversation) {
-            return res.status(404).send({ error: 'Conversation not found' });
-        }
-        conversation.agentId = agentId;
-        conversation.assignedTo = 'agent';
-        await conversation.save();
+        const conversation = await ChatService.assignConversation(req.params.id, req.user.id, agentId);
         res.send(conversation);
     } catch (error) {
-        res.status(400).send(error);
+        res.status(400).send({ error: error.message });
     }
 });
 
+// Update a conversation
+router.put('/conversations/:id', auth, async (req, res) => {
+    try {
+        const conversation = await ChatService.updateConversation(req.params.id, req.user.id, req.body);
+        res.send(conversation);
+    } catch (error) {
+        if (error.message === 'Conversation not found or access denied') {
+            res.status(404).send({ error: error.message });
+        } else {
+            res.status(400).send({ error: error.message });
+        }
+    }
+});
+
+// Delete a conversation
+router.delete('/conversations/:id', auth, async (req, res) => {
+    try {
+        const result = await ChatService.deleteConversation(req.params.id, req.user.id);
+        res.send(result);
+    } catch (error) {
+        if (error.message === 'Conversation not found or access denied') {
+            res.status(404).send({ error: error.message });
+        } else {
+            res.status(500).send({ error: error.message });
+        }
+    }
+});
+
+// Get conversations by end user ID
+router.get('/conversations/enduser/:endUserId', auth, async (req, res) => {
+    try {
+        const conversations = await ChatService.getConversationsByEndUserId(req.params.endUserId, req.user.id);
+        res.send(conversations);
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
 
 module.exports = router;

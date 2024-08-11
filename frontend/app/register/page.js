@@ -28,10 +28,9 @@ export default function Register() {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         setSuccess('Registration successful! Redirecting to dashboard...');
-        // Uncomment the following lines when you're ready to implement redirection
-        // setTimeout(() => {
-        //   router.push('/dashboard');
-        // }, 2000);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
       } else {
         setError(data.error || 'Registration failed');
       }

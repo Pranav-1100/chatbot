@@ -2,30 +2,61 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Plus, Filter, User } from 'lucide-react';
+import { ChevronRight, Plus, Filter, User, LogOut, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-// Assuming you have a service to fetch chatbots
 import { getChatbots, createChatbot } from '../../services/chatbotService';
+import NewChatbotModal from '../../components/NewChatbotModal';
+import ChatbotCard from '../../components/ChatbotCard';
 
 export default function ChatbotDashboard() {
   const [chatbots, setChatbots] = useState([]);
   const [showNewChatbotModal, setShowNewChatbotModal] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    fetchChatbots();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+    } else {
+      fetchChatbots();
+    }
   }, []);
 
   const fetchChatbots = async () => {
-    const fetchedChatbots = await getChatbots();
-    setChatbots(fetchedChatbots);
+    try {
+      const fetchedChatbots = await getChatbots();
+      setChatbots(fetchedChatbots);
+    } catch (error) {
+      console.error('Failed to fetch chatbots:', error);
+      // Handle error (e.g., show error message to user)
+    }
   };
 
+  const handleCreateChatbot = async (chatbotData) => {
+    try {
+      await createChatbot(chatbotData);
+      setShowNewChatbotModal(false);
+      fetchChatbots();
+    } catch (error) {
+      console.error('Failed to create chatbot:', error);
+      // Handle error (e.g., show error message to user)
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/login');
+  };
+
+  const allTags = [...new Set(chatbots.flatMap(chatbot => chatbot.conversationTags || []))];
+
   const filteredChatbots = chatbots.filter(chatbot => {
-    if (filter === 'all') return true;
-    return chatbot.priority === filter;
+    const priorityMatch = filter === 'all' || chatbot.priority === filter;
+    const tagMatch = tagFilter === 'all' || chatbot.conversationTags?.includes(tagFilter);
+    return priorityMatch && tagMatch;
   });
 
   return (
@@ -33,8 +64,28 @@ export default function ChatbotDashboard() {
       <header className="flex justify-between items-center p-4 bg-gray-800">
         <h1 className="text-2xl font-bold">Chatbot Dashboard</h1>
         <div className="relative">
-          <User className="cursor-pointer" onClick={() => {/* Implement dropdown */}} />
-          {/* Implement dropdown menu here */}
+          <User 
+            className="cursor-pointer" 
+            onClick={() => setShowProfileDropdown(!showProfileDropdown)} 
+          />
+          {showProfileDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1">
+              <button
+                className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 w-full text-left"
+                onClick={() => router.push('/settings')}
+              >
+                <Settings className="inline mr-2" size={16} />
+                Settings
+              </button>
+              <button
+                className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 w-full text-left"
+                onClick={handleLogout}
+              >
+                <LogOut className="inline mr-2" size={16} />
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -46,62 +97,52 @@ export default function ChatbotDashboard() {
           >
             <Plus className="mr-2" /> New Chatbot
           </button>
-          <div className="flex items-center">
-            <Filter className="mr-2" />
-            <select
-              className="bg-gray-800 text-white rounded p-2"
-              onChange={(e) => setFilter(e.target.value)}
-              value={filter}
-            >
-              <option value="all">All</option>
-              <option value="Urgent">Urgent</option>
-              <option value="Moderate">Moderate</option>
-              <option value="Low">Low</option>
-            </select>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <Filter className="mr-2" />
+              <select
+                className="bg-gray-800 text-white rounded p-2"
+                onChange={(e) => setFilter(e.target.value)}
+                value={filter}
+              >
+                <option value="all">All Priorities</option>
+                <option value="Urgent">Urgent</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div className="flex items-center">
+              <Filter className="mr-2" />
+              <select
+                className="bg-gray-800 text-white rounded p-2"
+                onChange={(e) => setTagFilter(e.target.value)}
+                value={tagFilter}
+              >
+                <option value="all">All Tags</option>
+                {allTags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredChatbots.map((chatbot) => (
-            <motion.div
-              key={chatbot.id}
-              className="bg-gray-800 p-6 rounded-lg shadow-lg"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <h2 className="text-xl font-bold mb-2">{chatbot.name}</h2>
-              <p className="text-gray-400 mb-4">{chatbot.description}</p>
-              <div className="flex flex-wrap mb-4">
-                {chatbot.conversationTags.map((tag, index) => (
-                  <span key={index} className="bg-indigo-600 text-white text-sm rounded-full px-3 py-1 mr-2 mb-2">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <button
-                className="flex items-center text-indigo-400 hover:text-indigo-300"
-                onClick={() => router.push(`/chatbot/${chatbot.id}`)}
-              >
-                View Conversations <ChevronRight className="ml-1" />
-              </button>
-            </motion.div>
+            <ChatbotCard 
+              key={chatbot.id} 
+              chatbot={chatbot} 
+              onViewConversations={() => router.push(`/chatbot/${chatbot.id}`)}
+            />
           ))}
         </div>
       </main>
 
       {showNewChatbotModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-gray-800 p-8 rounded-lg w-96">
-            <h2 className="text-2xl font-bold mb-4">Create New Chatbot</h2>
-            {/* Implement form for creating new chatbot */}
-            <button
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mt-4"
-              onClick={() => setShowNewChatbotModal(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <NewChatbotModal
+          onClose={() => setShowNewChatbotModal(false)}
+          onCreateChatbot={handleCreateChatbot}
+        />
       )}
     </div>
   );

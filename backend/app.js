@@ -7,6 +7,8 @@ const authRoutes = require('./routes/auth');
 const chatbotRoutes = require('./routes/chatbot');
 const chatRoutes = require('./routes/chat');
 const profileRoutes = require('./routes/profile');
+const conversationtagRoutes = require('./routes/conversationtag');
+const noteRoutes = require('./routes/note');
 const { User } = require('./models');
 const analyticsRoutes = require('./routes/analytics');
 const { sequelize } = require('./config/db');
@@ -40,6 +42,8 @@ app.use('/api/chatbots', chatbotRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notes', noteRoutes);
+app.use('/api/conversationtags', conversationtagRoutes);
 
 async function syncDatabase() {
   try {

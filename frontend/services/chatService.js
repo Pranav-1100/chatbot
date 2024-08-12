@@ -1,18 +1,36 @@
-const API_URL = 'http://localhost:234/api'; // Adjust this to your backend URL
+const API_URL = 'http://localhost:234/api';
 
 export async function getConversation(conversationId) {
-    const response = await fetch(`${API_URL}/chat/conversations/${conversationId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch conversation');
-    const data = await response.json();
-    return {
-      ...data,
-      Messages: data.Messages || [] // Ensure Messages is always an array
-    };
-  }
+  const response = await fetch(`${API_URL}/chat/conversations/${conversationId}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  if (!response.ok) throw new Error('Failed to fetch conversation');
+  const data = await response.json();
+  return {
+    ...data,
+    Messages: data.Messages || [],
+    notes: data.notes || [],
+    conversationTags: data.conversationTags || [],
+    priority: data.priority || 'Moderate'
+  };
+}
+
+export async function getConversations(chatbotId) {
+  const response = await fetch(`${API_URL}/chat/conversations?chatbotId=${chatbotId}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  if (!response.ok) throw new Error('Failed to fetch conversations');
+  const data = await response.json();
+  return data.map(conversation => ({
+    ...conversation,
+    conversationTags: conversation.conversationTags || [],
+    priority: conversation.priority || 'Moderate'
+  }));
+}
 
 export async function sendStreamMessage(conversationId, message) {
   const response = await fetch(`${API_URL}/chat/conversations/${conversationId}/messages/stream`, {
@@ -40,6 +58,16 @@ export async function addNote(conversationId, note) {
   return response.json();
 }
 
+export async function getNotes(conversationId) {
+  const response = await fetch(`${API_URL}/chat/conversations/${conversationId}/notes`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  if (!response.ok) throw new Error('Failed to fetch notes');
+  return response.json();
+}
+
 export async function updateConversationTags(conversationId, tags) {
   const response = await fetch(`${API_URL}/chat/conversations/${conversationId}/tags`, {
     method: 'PUT',
@@ -63,5 +91,18 @@ export async function updatePriority(conversationId, priority) {
     body: JSON.stringify({ priority }),
   });
   if (!response.ok) throw new Error('Failed to update priority');
+  return response.json();
+}
+
+export async function createConversation(conversationData) {
+  const response = await fetch(`${API_URL}/chat/conversations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify(conversationData),
+  });
+  if (!response.ok) throw new Error('Failed to create conversation');
   return response.json();
 }

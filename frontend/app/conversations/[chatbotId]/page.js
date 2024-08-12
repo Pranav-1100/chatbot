@@ -9,7 +9,7 @@ import NewConversationModal from '../../../components/NewConversationModal';
 export default function Conversations({ params }) {
   const [conversations, setConversations] = useState([]);
   const [showNewConversationModal, setShowNewConversationModal] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
   const router = useRouter();
   const chatbotId = params.chatbotId;
@@ -30,7 +30,7 @@ export default function Conversations({ params }) {
   const handleCreateConversation = async (conversationData) => {
     console.log('Creating new conversation:', conversationData);
     try {
-      const newConversation = await createConversation(conversationData);
+      const newConversation = await createConversation({ ...conversationData, chatbotId });
       console.log('New conversation created:', newConversation);
       setShowNewConversationModal(false);
       fetchConversations();
@@ -38,10 +38,11 @@ export default function Conversations({ params }) {
       console.error('Failed to create conversation:', error);
     }
   };
+
   const allTags = [...new Set(conversations.flatMap(conversation => conversation.conversationTags || []))];
 
   const filteredConversations = conversations.filter(conversation => {
-    const priorityMatch = filter === 'all' || conversation.priority === filter;
+    const priorityMatch = priorityFilter === 'all' || conversation.priority === priorityFilter;
     const tagMatch = tagFilter === 'all' || conversation.conversationTags?.includes(tagFilter);
     return priorityMatch && tagMatch;
   });
@@ -61,8 +62,8 @@ export default function Conversations({ params }) {
             <Filter className="mr-2" />
             <select
               className="bg-gray-800 text-white rounded p-2"
-              onChange={(e) => setFilter(e.target.value)}
-              value={filter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              value={priorityFilter}
             >
               <option value="all">All Priorities</option>
               <option value="Urgent">Urgent</option>
@@ -89,7 +90,7 @@ export default function Conversations({ params }) {
         {filteredConversations.map((conversation) => (
           <div key={conversation.id} className="bg-gray-800 p-6 rounded-lg shadow-lg">
             <h2 className="text-xl font-bold mb-2">{conversation.subject || 'No subject'}</h2>
-            <p className="text-gray-400 mb-4">Priority: {conversation.priority}</p>
+            <p className="text-gray-400 mb-2">Priority: {conversation.priority}</p>
             <div className="flex flex-wrap mb-4">
               {conversation.conversationTags?.map((tag, index) => (
                 <span key={index} className="bg-indigo-600 text-white text-sm rounded-full px-3 py-1 mr-2 mb-2">
@@ -98,7 +99,7 @@ export default function Conversations({ params }) {
               ))}
             </div>
             <button
-              className="text-indigo-400 hover:text-indigo-300"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
               onClick={() => router.push(`/chat/${conversation.id}`)}
             >
               View Chat

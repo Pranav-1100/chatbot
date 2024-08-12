@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getConversation, sendStreamMessage, addNote, updateConversationTags, updatePriority } from '../../../services/chatService';
+import { getConversation, sendStreamMessage, addNote, getNotes, updateConversationTags, updatePriority } from '../../../services/chatService';
 
 export default function Chat({ params }) {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [note, setNote] = useState('');
+  const [notes, setNotes] = useState([]);
   const [tags, setTags] = useState([]);
   const [newTag, setNewTag] = useState('');
   const [priority, setPriority] = useState('Moderate');
@@ -19,20 +20,8 @@ export default function Chat({ params }) {
 
   useEffect(() => {
     fetchConversation();
+    fetchNotes();
   }, [conversationId]);
-
-  // Add this new useEffect hook
-  useEffect(() => {
-    const savedMessages = localStorage.getItem(`messages_${conversationId}`);
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
-  }, [conversationId]);
-
-  // Add this new useEffect hook
-  useEffect(() => {
-    localStorage.setItem(`messages_${conversationId}`, JSON.stringify(messages));
-  }, [messages, conversationId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -50,23 +39,30 @@ export default function Chat({ params }) {
     }
   };
 
+  const fetchNotes = async () => {
+    try {
+      const fetchedNotes = await getNotes(conversationId);
+      setNotes(fetchedNotes);
+    } catch (error) {
+      console.error('Failed to fetch notes:', error);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-  
+
     const userMessage = { chatText: newMessage, chatUser: 'user' };
     setMessages(prev => [...prev, userMessage]);
     setNewMessage('');
     setIsThinking(true);
-  
+
     try {
       const response = await sendStreamMessage(conversationId, newMessage);
       const reader = response.getReader();
       const decoder = new TextDecoder();
       let botResponse = '';
-  
-      setMessages(prev => [...prev, { chatText: '', chatUser: 'bot' }]);
-  
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -80,7 +76,7 @@ export default function Chat({ params }) {
             if (data.type === 'bot') {
               botResponse += data.content;
               setMessages(prev => [
-                ...prev.slice(0, -1),
+                ...prev,
                 { chatText: botResponse, chatUser: 'bot' }
               ]);
             }
@@ -97,9 +93,9 @@ export default function Chat({ params }) {
   const handleAddNote = async () => {
     if (!note.trim()) return;
     try {
-      const updatedConversation = await addNote(conversationId, note);
-      setConversation(updatedConversation);
+      await addNote(conversationId, note);
       setNote('');
+      fetchNotes();
     } catch (error) {
       console.error('Failed to add note:', error);
     }
@@ -109,8 +105,7 @@ export default function Chat({ params }) {
     if (!newTag.trim()) return;
     const updatedTags = [...tags, newTag];
     try {
-      const updatedConversation = await updateConversationTags(conversationId, updatedTags);
-      setConversation(updatedConversation);
+      await updateConversationTags(conversationId, updatedTags);
       setTags(updatedTags);
       setNewTag('');
     } catch (error) {
@@ -120,8 +115,7 @@ export default function Chat({ params }) {
 
   const handleUpdatePriority = async (newPriority) => {
     try {
-      const updatedConversation = await updatePriority(conversationId, newPriority);
-      setConversation(updatedConversation);
+      await updatePriority(conversationId, newPriority);
       setPriority(newPriority);
     } catch (error) {
       console.error('Failed to update priority:', error);
@@ -236,11 +230,11 @@ export default function Chat({ params }) {
             Add Note
           </button>
         </div>
-        {conversation.notes && conversation.notes.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-4 overflow-y-auto max-h-[calc(100vh-20rem)]">
-            {conversation.notes.map((note, index) => (
+        {notes.length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-4 overflow-y-auto max-h-[50vh]">
+            {notes.map((noteText, index) => (
               <div key={index} className="bg-gray-700 p-2 rounded mb-2">
-                {note}
+                {noteText}
               </div>
             ))}
           </div>

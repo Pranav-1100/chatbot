@@ -1,6 +1,4 @@
-// services/openaiService.js
 const OpenAI = require('openai');
-const { PassThrough } = require('stream');
 
 class OpenAIService {
   constructor() {
@@ -23,30 +21,35 @@ class OpenAIService {
     }
   }
 
-  async generateStreamingChatResponse(messages) {
-    const stream = new PassThrough();
-
+  async generateStreamingChatResponse(messages, res) {
     try {
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: messages,
-        stream: true,
-      });
+        const stream = await this.openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: messages,
+            stream: true,
+        });
 
-      for await (const chunk of response) {
-        if (chunk.choices[0]?.delta?.content) {
-          stream.write(chunk.choices[0].delta.content);
+        let fullResponse = '';
+
+        for await (const chunk of stream) {
+            if (chunk.choices[0]?.delta?.content) {
+                const content = chunk.choices[0].delta.content;
+                fullResponse += content;
+                res.write(`data: ${JSON.stringify({ type: 'bot', content: content })}\n\n`);
+            }
         }
-      }
-    } catch (error) {
-      console.error('Error calling OpenAI API:', error);
-      stream.emit('error', error);
-    } finally {
-      stream.end();
-    }
 
-    return stream;
-  }
+        res.write(`data: ${JSON.stringify({ type: 'end', content: 'Stream ended' })}\n\n`);
+        res.end();
+
+        return fullResponse;
+    } catch (error) {
+        console.error('Error in OpenAI streaming:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`);
+        res.end();
+        throw error;
+    }
+}
 }
 
 module.exports = new OpenAIService();

@@ -1,4 +1,5 @@
 require('dotenv').config();
+const cors = require('cors');
 const express = require('express');
 const { initDatabase } = require('./config/db');
 const authMiddleware = require('./middleware/auth');
@@ -12,6 +13,8 @@ const { sequelize } = require('./config/db');
 
 const app = express();
 const port = process.env.PORT || 234;
+
+app.use(cors());
 
 // Initialize database
 initDatabase()

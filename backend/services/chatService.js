@@ -111,23 +111,28 @@ class ChatService {
     return { userMessage, botMessage };
   }
 
-  static async streamMessage(conversationId, userId, message) {
-    const conversation = await this.getConversation(conversationId, userId);
+  static async streamMessage(conversationId, userId, message, res) {
+    try {
+        const conversation = await this.getConversation(conversationId, userId);
 
-    if (!conversation) {
-      throw new Error('Conversation not found');
+        if (!conversation) {
+            throw new Error('Conversation not found');
+        }
+
+        await Message.create({
+            chatText: message,
+            conversationId,
+            chatUser: 'user'
+        });
+
+        const chatHistory = await this.getChatHistory(conversationId);
+        await openaiService.generateStreamingChatResponse(chatHistory, res);
+    } catch (error) {
+        console.error('Error in ChatService.streamMessage:', error);
+        res.write(`data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`);
+        res.end();
     }
-
-    await Message.create({
-      chatText: message,
-      conversationId,
-      chatUser: 'user'
-    });
-
-    const chatHistory = await this.getChatHistory(conversationId);
-    return openaiService.generateStreamingChatResponse(chatHistory);
-  }
-
+}
   static async saveStreamResponse(conversationId, response) {
     await Message.create({
       chatText: response,

@@ -52,35 +52,21 @@ router.post('/conversations/:id/messages', auth, async (req, res) => {
 // Stream a message in a conversation
 router.post('/conversations/:id/messages/stream', auth, async (req, res) => {
     try {
-        const stream = await ChatService.streamMessage(req.params.id, req.user.id, req.body.message);
-
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive'
         });
 
-        let fullResponse = '';
-        stream.on('data', (chunk) => {
-            fullResponse += chunk;
-            res.write(`data: ${JSON.stringify({ type: 'bot', content: chunk })}\n\n`);
-        });
-
-        stream.on('end', async () => {
-            res.write(`data: ${JSON.stringify({ type: 'end', content: 'Stream ended' })}\n\n`);
-            res.end();
-
-            await ChatService.saveStreamResponse(req.params.id, fullResponse);
-        });
-
-        stream.on('error', (error) => {
-            console.error('Stream error:', error);
-            res.write(`data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`);
-            res.end();
-        });
+        await ChatService.streamMessage(req.params.id, req.user.id, req.body.message, res);
     } catch (error) {
         console.error('Error in streaming message:', error);
-        res.status(500).send({ error: 'An error occurred while streaming the response' });
+        if (!res.headersSent) {
+            res.status(500).send({ error: 'An error occurred while streaming the response' });
+        } else {
+            res.write(`data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`);
+            res.end();
+        }
     }
 });
 
@@ -132,5 +118,28 @@ router.get('/conversations/enduser/:endUserId', auth, async (req, res) => {
         res.status(500).send({ error: error.message });
     }
 });
+router.post('/stream/:conversationId', auth, async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+      const { message } = req.body;
+      const userId = req.user.id;
+  
+      // Set headers for SSE
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      });
+  
+      // Call the streamMessage method from ChatService
+      await ChatService.streamMessage(conversationId, userId, message, res);
+    } catch (error) {
+      console.error('Error in streaming message:', error);
+      // If headers haven't been sent yet, send an error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'An error occurred while streaming the message' });
+      }
+    }
+  });
 
 module.exports = router;

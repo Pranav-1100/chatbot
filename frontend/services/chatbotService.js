@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:234/api';
+const API_URL = 'https://chatbot-0pmq.onrender.com/api';
 
 export async function getChatbots() {
   try {

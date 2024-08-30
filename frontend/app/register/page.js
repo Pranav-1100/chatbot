@@ -19,7 +19,7 @@ export default function Register() {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:234/api/auth/register', {
+      const response = await fetch('https://chatbot-0pmq.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),

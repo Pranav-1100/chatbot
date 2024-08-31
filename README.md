@@ -23,11 +23,11 @@ This is frontend to experience my project just clone both the repos and then to 
 After that just go to localhost it is running on (you can refer to your terminal to know about the localhost it is running on to) and experience it :D.
 
 
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07H3PGUPKJ/screenshot_2024-08-11_at_5.59.19___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07G0DG6THD/screenshot_2024-08-11_at_5.58.09___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07GC3GACKF/screenshot_2024-08-11_at_5.56.19___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07GESGB4MR/screenshot_2024-08-11_at_5.56.36___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07GESGDBDH/screenshot_2024-08-11_at_5.57.13___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07H3P6GLMN/screenshot_2024-08-11_at_5.38.39___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07GC36A3K7/screenshot_2024-08-11_at_5.38.49___pm.png)
-![image](https://hackclub.slack.com/files/U07H1TPTS5N/F07H3P6NQF2/screenshot_2024-08-11_at_5.41.09___pm.png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(1).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(2).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(3).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(4).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(5).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(6).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club%20(7).png)
+![image](https://github.com/Pranav-1100/chatbot/blob/main/Aug%2011%20Screenshot%20from%20Hack%20Club.png)
